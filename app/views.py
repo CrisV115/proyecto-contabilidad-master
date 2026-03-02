@@ -1,6 +1,8 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+
 from .forms import RegistroForm
 from .models import Usuario
 
@@ -27,9 +29,8 @@ def register(request):
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('login')
 
-        else:
-            # Si hay errores, se enviarán al template automáticamente
-            messages.error(request, "Corrija los errores del formulario.")
+        # Si hay errores, se enviarán al template automáticamente
+        messages.error(request, "Corrija los errores del formulario.")
 
     else:
         form = RegistroForm()
@@ -56,12 +57,45 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
-            return redirect("home")
-        else:
-            messages.error(request, "Usuario o contraseña incorrectos.")
-            return redirect("login")
+            return redirect("menu_principal")
+
+        messages.error(request, "Usuario o contraseña incorrectos.")
+        return redirect("login")
 
     return render(request, "login.html")
+
+
+# =========================
+# 📋 MENÚ PRINCIPAL (ROL DE PAGOS)
+# =========================
+@login_required(login_url='login')
+def menu_principal(request):
+    return render(request, 'menu_principal.html')
+
+
+# =========================
+# 👤 MÓDULO EMPLEADOS
+# =========================
+@login_required(login_url='login')
+def modulo_empleados(request):
+    return render(request, 'modulo_empleados.html')
+
+
+# =========================
+# 💵 MÓDULO ROL DE PAGOS
+# =========================
+@login_required(login_url='login')
+def modulo_rol_pagos(request):
+    return render(request, 'modulo_rol_pagos.html')
+
+
+# =========================
+# 🚪 LOGOUT
+# =========================
+@login_required(login_url='login')
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
 
 # =========================
@@ -90,7 +124,6 @@ def password_reset(request):
 
             # Mostrar pregunta de seguridad
             return render(request, "password_reset.html", {"usuario": usuario})
-
 
         # -------------------------
         # PASO 2: VALIDAR RESPUESTA
@@ -121,11 +154,11 @@ def password_reset(request):
                 messages.success(request, "Contraseña cambiada correctamente.")
                 return redirect("login")
 
-            else:
-                messages.error(request, "La respuesta no coincide.")
-                return render(request, "password_reset.html", {"usuario": usuario})
+            messages.error(request, "La respuesta no coincide.")
+            return render(request, "password_reset.html", {"usuario": usuario})
 
     return render(request, "password_reset.html")
+
 
 def meme(request):
     return render(request, 'meme.html')

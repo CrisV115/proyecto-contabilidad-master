@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal - Rol de Pagos</title>
+    <style>
+        body {
+            background-image: url("{% static 'img/fondo.jpg' %}");
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .menu-box {
+            width: 420px;
+            border-radius: 20px;
+            padding: 35px;
+            backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(140, 0, 255, 0.5), rgba(255, 0, 200, 0.5));
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            color: #fff;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+
+        .menu-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            border: none;
+            border-radius: 15px;
+            padding: 13px;
+            text-decoration: none;
+            color: #fff;
+            background: linear-gradient(45deg, #8c00ff, #ff00c8);
+            font-size: 15px;
+            transition: transform 0.25s, opacity 0.25s;
+            display: block;
+        }
+
+        .option-btn:hover {
+            transform: scale(1.03);
+            opacity: 0.95;
+        }
+
+        .salir {
+            background: linear-gradient(45deg, #ff4d4d, #ff1a75);
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-box">
+        <h1>Rol de Pagos</h1>
+        <p>Seleccione el módulo al que desea ingresar.</p>
+
+        <div class="menu-options">
+            <a class="option-btn" href="{% url 'modulo_empleados' %}">Agregar / Editar Empleado</a>
+            <a class="option-btn" href="{% url 'modulo_rol_pagos' %}">Calcular Rol de Pagos</a>
+            <a class="option-btn salir" href="{% url 'logout' %}">Salir y volver al Login</a>
+        </div>
+    </div>
+</body>
+</html>

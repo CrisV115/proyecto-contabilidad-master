@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Rol de Pagos</title>
+    <style>
+        body {
+            background-image: url("{% static 'img/fondo.jpg' %}");
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        .panel {
+            width: 540px;
+            border-radius: 16px;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.55);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        a {
+            color: #ffd6f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h2>Módulo: Calcular Rol de Pagos</h2>
+        <p>Desde este módulo puedes añadir la lógica para calcular ingresos, descuentos y total neto por empleado.</p>
+        <a href="{% url 'menu_principal' %}">← Volver al menú principal</a>
+    </div>
+</body>
+</html>
