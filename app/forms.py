@@ -1,8 +1,11 @@
+import re
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Usuario
 from django.core.exceptions import ValidationError
-import re
+
+from .models import Empleado, Usuario
+
 
 class RegistroForm(UserCreationForm):
 
@@ -39,3 +42,22 @@ class RegistroForm(UserCreationForm):
             raise ValidationError("El teléfono debe tener exactamente 10 números.")
 
         return telefono
+
+
+class EmpleadoForm(forms.ModelForm):
+    class Meta:
+        model = Empleado
+        fields = ['apellidos_nombres', 'cedula_pasaporte', 'cargo', 'fecha_ingreso', 'sueldo']
+        widgets = {
+            'apellidos_nombres': forms.TextInput(attrs={'placeholder': 'Ej: Juan Pérez'}),
+            'cedula_pasaporte': forms.TextInput(attrs={'placeholder': 'Ej: 1723456789'}),
+            'cargo': forms.TextInput(attrs={'placeholder': 'Ej: MENSAJERO'}),
+            'fecha_ingreso': forms.DateInput(attrs={'type': 'date'}),
+            'sueldo': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+        }
+
+    def clean_sueldo(self):
+        sueldo = self.cleaned_data.get('sueldo')
+        if sueldo is not None and sueldo <= 0:
+            raise ValidationError('El sueldo debe ser mayor a 0.')
+        return sueldo

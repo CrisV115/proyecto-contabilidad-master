@@ -1,17 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 
-from .forms import RegistroForm
-from .models import Usuario
+from .forms import EmpleadoForm, RegistroForm
+from .models import Empleado, Usuario
 
 
 # =========================
 # 🏠 HOME
 # =========================
 def home(request):
-    # Muestra la página principal
     return render(request, 'home.html')
 
 
@@ -23,13 +22,11 @@ def register(request):
     if request.method == 'POST':
         form = RegistroForm(request.POST)
 
-        # Si el formulario es válido (ya valida usuario, email, contraseñas)
         if form.is_valid():
             form.save()
             messages.success(request, "Usuario registrado correctamente.")
             return redirect('login')
 
-        # Si hay errores, se enviarán al template automáticamente
         messages.error(request, "Corrija los errores del formulario.")
 
     else:
@@ -48,7 +45,6 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        # Validar campos vacíos
         if not username or not password:
             messages.error(request, "Todos los campos son obligatorios.")
             return redirect("login")
@@ -74,11 +70,54 @@ def menu_principal(request):
 
 
 # =========================
-# 👤 MÓDULO EMPLEADOS
+# 👤 MÓDULO EMPLEADOS (CRUD)
 # =========================
 @login_required(login_url='login')
 def modulo_empleados(request):
-    return render(request, 'modulo_empleados.html')
+    empleado_edicion = None
+    form = EmpleadoForm()
+
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+
+        if accion == 'guardar':
+            empleado_id = request.POST.get('empleado_id')
+            empleado_edicion = get_object_or_404(Empleado, id=empleado_id) if empleado_id else None
+            form = EmpleadoForm(request.POST, instance=empleado_edicion)
+
+            if form.is_valid():
+                form.save()
+                if empleado_edicion:
+                    messages.success(request, 'Empleado actualizado correctamente.')
+                else:
+                    messages.success(request, 'Empleado agregado correctamente.')
+                return redirect('modulo_empleados')
+
+            messages.error(request, 'Revise los datos del formulario.')
+
+        elif accion == 'eliminar':
+            empleado_id = request.POST.get('empleado_id')
+            empleado = get_object_or_404(Empleado, id=empleado_id)
+            empleado.delete()
+            messages.success(request, 'Empleado eliminado correctamente.')
+            return redirect('modulo_empleados')
+
+    empleado_id_editar = request.GET.get('editar')
+    if empleado_id_editar and request.method == 'GET':
+        empleado_edicion = get_object_or_404(Empleado, id=empleado_id_editar)
+        form = EmpleadoForm(instance=empleado_edicion)
+
+    empleados = Empleado.objects.all()
+
+    return render(
+        request,
+        'modulo_empleados.html',
+        {
+            'form': form,
+            'empleados': empleados,
+            'empleado_edicion': empleado_edicion,
+        }
+    )
 
 
 # =========================
@@ -105,9 +144,6 @@ def password_reset(request):
 
     if request.method == "POST":
 
-        # -------------------------
-        # PASO 1: INGRESAR EMAIL
-        # -------------------------
         if "email" in request.POST and "respuesta_seguridad" not in request.POST:
 
             email = request.POST.get("email")
@@ -122,12 +158,8 @@ def password_reset(request):
                 messages.error(request, "No existe un usuario con ese correo.")
                 return redirect("password_reset")
 
-            # Mostrar pregunta de seguridad
             return render(request, "password_reset.html", {"usuario": usuario})
 
-        # -------------------------
-        # PASO 2: VALIDAR RESPUESTA
-        # -------------------------
         if "respuesta_seguridad" in request.POST:
 
             email = request.POST.get("email")
@@ -140,12 +172,10 @@ def password_reset(request):
                 messages.error(request, "Error inesperado.")
                 return redirect("password_reset")
 
-            # Validar campos vacíos
             if not respuesta or not nueva_password:
                 messages.error(request, "Todos los campos son obligatorios.")
                 return render(request, "password_reset.html", {"usuario": usuario})
 
-            # Validar respuesta de seguridad
             if usuario.respuesta_seguridad.lower() == respuesta.lower():
 
                 usuario.set_password(nueva_password)
