@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar / Editar Empleado</title>
+    <style>
+        body {
+            background-image: url("{% static 'img/fondo.jpg' %}");
+            background-size: cover;
+            background-position: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .layout {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.58);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 2px;
+        }
+
+        .btns {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+            background: linear-gradient(45deg, #8c00ff, #ff00c8);
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff4d4d, #ff1a75);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f0f0f0;
+            color: #222;
+        }
+
+        thead th {
+            background: #ffc000;
+            color: #111;
+            border: 1px solid #7a7a7a;
+            padding: 10px 8px;
+            font-size: 14px;
+        }
+
+        tbody td {
+            border: 1px solid #8f8f8f;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .acciones {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .link-back {
+            display: inline-block;
+            margin-top: 15px;
+            color: #ffd6f4;
+        }
+
+        .msg {
+            background: rgba(255,255,255,0.14);
+            border-left: 4px solid #ffd6f4;
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <div class="card">
+            <h2>{% if empleado_edicion %}Editar empleado{% else %}Agregar empleado{% endif %}</h2>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="msg">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="guardar">
+                {% if empleado_edicion %}
+                    <input type="hidden" name="empleado_id" value="{{ empleado_edicion.id }}">
+                {% endif %}
+
+                <label>Apellidos y Nombres</label>
+                {{ form.apellidos_nombres }}
+
+                <label>Cédula / Pasaporte</label>
+                {{ form.cedula_pasaporte }}
+
+                <label>Cargo</label>
+                {{ form.cargo }}
+
+                <label>Fecha de ingreso</label>
+                {{ form.fecha_ingreso }}
+
+                <label>Sueldo</label>
+                {{ form.sueldo }}
+
+                <div class="btns">
+                    <button class="btn" type="submit">{% if empleado_edicion %}Actualizar{% else %}Guardar{% endif %}</button>
+                    {% if empleado_edicion %}
+                        <a href="{% url 'modulo_empleados' %}" class="btn btn-danger">Cancelar edición</a>
+                    {% endif %}
+                </div>
+            </form>
+            <a class="link-back" href="{% url 'menu_principal' %}">← Volver al menú principal</a>
+        </div>
+
+        <div class="card">
+            <h2>NÓMINA DE LA EMPRESA Z</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>APELLIDOS Y NOMBRES</th>
+                        <th>CÉDULA / PASAPORTE</th>
+                        <th>CARGOS</th>
+                        <th>FECHA DE INGRESO</th>
+                        <th>SUELDO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empleado in empleados %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ empleado.apellidos_nombres }}</td>
+                            <td>{{ empleado.cedula_pasaporte }}</td>
+                            <td>{{ empleado.cargo }}</td>
+                            <td>{{ empleado.fecha_ingreso|date:'j/n/Y' }}</td>
+                            <td>$ {{ empleado.sueldo|floatformat:2 }}</td>
+                            <td>
+                                <div class="acciones">
+                                    <a class="btn" href="{% url 'modulo_empleados' %}?editar={{ empleado.id }}">Editar</a>
+                                    <form method="post" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="empleado_id" value="{{ empleado.id }}">
+                                        <button class="btn btn-danger" type="submit">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7">No hay empleados registrados todavía.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
