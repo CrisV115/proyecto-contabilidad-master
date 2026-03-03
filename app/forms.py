@@ -47,13 +47,16 @@ class RegistroForm(UserCreationForm):
 class EmpleadoForm(forms.ModelForm):
     class Meta:
         model = Empleado
-        fields = ['apellidos_nombres', 'cedula_pasaporte', 'cargo', 'fecha_ingreso', 'sueldo']
+        fields = ['apellidos_nombres', 'cedula_pasaporte', 'cargo', 'fecha_ingreso', 'sueldo', 'preferencia_decimo_tercero', 'preferencia_decimo_cuarto']
         widgets = {
             'apellidos_nombres': forms.TextInput(attrs={'placeholder': 'Ej: Juan Pérez'}),
             'cedula_pasaporte': forms.TextInput(attrs={'placeholder': 'Ej: 1723456789'}),
             'cargo': forms.TextInput(attrs={'placeholder': 'Ej: MENSAJERO'}),
             'fecha_ingreso': forms.DateInput(attrs={'type': 'date'}),
             'sueldo': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+
+            'preferencia_decimo_tercero': forms.Select(),
+            'preferencia_decimo_cuarto': forms.Select(),
         }
 
     def clean_sueldo(self):

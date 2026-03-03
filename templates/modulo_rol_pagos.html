@@ -4,39 +4,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo de Rol de Pagos</title>
+    <title>Módulo de Nómina Mensual</title>
     <style>
-        body {
-            background-image: url("{% static 'img/fondo.jpg' %}");
-            background-size: cover;
-            background-position: center;
-            height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: Arial, sans-serif;
-            color: white;
-        }
-
-        .panel {
-            width: 540px;
-            border-radius: 16px;
-            padding: 30px;
-            background: rgba(0, 0, 0, 0.55);
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        a {
-            color: #ffd6f4;
-        }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6fb; color: #1b1b1b; }
+        .wrap { max-width: 1400px; margin: 20px auto; padding: 0 16px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.08); padding: 18px; margin-bottom: 16px; }
+        h2, h3 { margin-top: 0; }
+        .toolbar { display: grid; grid-template-columns: repeat(4, minmax(120px, 220px)); gap: 10px; align-items: end; }
+        label { font-weight: 700; font-size: 13px; }
+        input, select { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cfcfcf; border-radius: 8px; }
+        button, .btn { border: none; padding: 10px 14px; border-radius: 10px; cursor: pointer; background: #1f6feb; color: #fff; text-decoration: none; display:inline-block; }
+        .btn-back { background: #5f5f5f; }
+        .table-wrap { overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; min-width: 1200px; }
+        th, td { border: 1px solid #d8d8d8; padding: 8px; font-size: 13px; text-align: right; }
+        th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { text-align: left; }
+        thead th { background: #ffc000; }
+        .msg { padding: 8px; border-radius: 8px; background: #eaf4ff; margin-bottom: 10px; }
+        pre { background: #111; color: #7CFC7C; padding: 12px; border-radius: 10px; overflow: auto; }
+        .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     </style>
 </head>
 <body>
-    <div class="panel">
-        <h2>Módulo: Calcular Rol de Pagos</h2>
-        <p>Desde este módulo puedes añadir la lógica para calcular ingresos, descuentos y total neto por empleado.</p>
-        <a href="{% url 'menu_principal' %}">← Volver al menú principal</a>
+<div class="wrap">
+    <div class="card">
+        <h2>Rol de Pagos - Nómina Mensual</h2>
+        <p>Tabla de ingreso masivo para el contador: registra por empleado horas suplementarias (50%), horas extraordinarias (100%), bonificaciones/comisiones y descuentos.</p>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="msg">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="toolbar">
+                <div>
+                    <label>Mes</label>
+                    <select name="mes">
+                        {% for m in meses %}
+                            <option value="{{ m }}" {% if periodo_mes == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Año</label>
+                    <input type="number" name="anio" value="{{ periodo_anio }}" min="2020" max="2100">
+                </div>
+                <div>
+                    <label>SBU vigente</label>
+                    <input type="number" step="0.01" min="0" name="sbu" value="{{ sbu }}">
+                </div>
+                <div><button type="submit">Procesar y guardar nómina</button></div>
+            </div>
+
+            <div class="table-wrap" style="margin-top:14px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Empleado</th>
+                            <th>Cargo</th>
+                            <th>Sueldo</th>
+                            <th>H. Supl. 50%</th>
+                            <th>H. Extra 100%</th>
+                            <th>Bonos/Comisiones</th>
+                            <th>Descuentos</th>
+                            <th>Pref. 13ro</th>
+                            <th>Pref. 14to</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for empleado in empleados %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ empleado.apellidos_nombres }}</td>
+                            <td>{{ empleado.cargo }}</td>
+                            <td>${{ empleado.sueldo|floatformat:2 }}</td>
+                            <td><input type="number" step="0.01" min="0" name="hs_{{ empleado.id }}" value="0"></td>
+                            <td><input type="number" step="0.01" min="0" name="he_{{ empleado.id }}" value="0"></td>
+                            <td><input type="number" step="0.01" min="0" name="bonos_{{ empleado.id }}" value="0"></td>
+                            <td><input type="number" step="0.01" min="0" name="descuentos_{{ empleado.id }}" value="0"></td>
+                            <td>{{ empleado.get_preferencia_decimo_tercero_display }}</td>
+                            <td>{{ empleado.get_preferencia_decimo_cuarto_display }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="10">No hay empleados registrados.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+        <a class="btn btn-back" href="{% url 'menu_principal' %}">← Volver al menú principal</a>
     </div>
+
+    {% if comprobante %}
+    <div class="grid-2">
+        <div class="card">
+            <h3>Ejemplo JSON de empleado procesado</h3>
+            <pre>{{ ejemplo_json }}</pre>
+        </div>
+        <div class="card">
+            <h3>Comprobante de Pago Individual</h3>
+            <p><strong>Empleado:</strong> {{ comprobante.empleado.apellidos_nombres }}</p>
+            <p><strong>Cédula:</strong> {{ comprobante.empleado.cedula_pasaporte }} | <strong>Periodo:</strong> {{ comprobante.periodo|date:'m/Y' }}</p>
+            <table>
+                <tr><th>Concepto ingreso</th><th>Valor</th></tr>
+                <tr><td>Sueldo</td><td>${{ comprobante.empleado.sueldo|floatformat:2 }}</td></tr>
+                <tr><td>Horas suplementarias (50%)</td><td>${{ comprobante.valor_horas_suplementarias|floatformat:2 }}</td></tr>
+                <tr><td>Horas extraordinarias (100%)</td><td>${{ comprobante.valor_horas_extraordinarias|floatformat:2 }}</td></tr>
+                <tr><td>Bonificaciones/Comisiones</td><td>${{ comprobante.bonificaciones_comisiones|floatformat:2 }}</td></tr>
+                <tr><td>Décimo tercero pagado</td><td>${{ comprobante.decimo_tercero_pagado|floatformat:2 }}</td></tr>
+                <tr><td>Décimo cuarto pagado</td><td>${{ comprobante.decimo_cuarto_pagado|floatformat:2 }}</td></tr>
+                <tr><td>Fondos de reserva</td><td>${{ comprobante.fondos_reserva|floatformat:2 }}</td></tr>
+                <tr><th>Total ingresos</th><th>${{ comprobante.total_ingresos|floatformat:2 }}</th></tr>
+                <tr><td>Aporte IESS personal (9.45%)</td><td>${{ comprobante.aporte_iess_personal|floatformat:2 }}</td></tr>
+                <tr><td>Descuentos (atrasos/préstamos)</td><td>${{ comprobante.descuentos|floatformat:2 }}</td></tr>
+                <tr><th>Total egresos</th><th>${{ comprobante.total_egresos|floatformat:2 }}</th></tr>
+                <tr><th>Líquido a pagar</th><th>${{ comprobante.liquido_pagar|floatformat:2 }}</th></tr>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
 </body>
 </html>

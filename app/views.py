@@ -1,10 +1,23 @@
+import json
+from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import EmpleadoForm, RegistroForm
-from .models import Empleado, Usuario
+from .models import Empleado, NominaMensual, Usuario
+
+
+def _to_decimal(value, default='0'):
+    raw = value if value not in (None, '') else default
+    return Decimal(str(raw))
+
+
+def _money(value):
+    return value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
 # =========================
@@ -125,7 +138,120 @@ def modulo_empleados(request):
 # =========================
 @login_required(login_url='login')
 def modulo_rol_pagos(request):
-    return render(request, 'modulo_rol_pagos.html')
+    empleados = Empleado.objects.all()
+    hoy = date.today()
+    periodo_anio = int(request.POST.get('anio', hoy.year)) if request.method == 'POST' else hoy.year
+    periodo_mes = int(request.POST.get('mes', hoy.month)) if request.method == 'POST' else hoy.month
+    sbu = _money(_to_decimal(request.POST.get('sbu', '470.00')) if request.method == 'POST' else Decimal('470.00'))
+
+    registros_nomina = []
+    comprobante = None
+    ejemplo_json = None
+
+    if request.method == 'POST':
+        periodo = date(periodo_anio, periodo_mes, 1)
+
+        for empleado in empleados:
+            hs = _to_decimal(request.POST.get(f'hs_{empleado.id}'))
+            he = _to_decimal(request.POST.get(f'he_{empleado.id}'))
+            bonos = _to_decimal(request.POST.get(f'bonos_{empleado.id}'))
+            descuentos = _to_decimal(request.POST.get(f'descuentos_{empleado.id}'))
+
+            valor_hora = empleado.sueldo / Decimal('240')
+            valor_hs = _money(hs * valor_hora * Decimal('1.5'))
+            valor_he = _money(he * valor_hora * Decimal('2.0'))
+
+            ingresos_gravables = _money(empleado.sueldo + valor_hs + valor_he + bonos)
+            aporte_iess = _money(ingresos_gravables * Decimal('0.0945'))
+
+            base_decimo_tercero = _money(ingresos_gravables / Decimal('12'))
+            base_decimo_cuarto = _money(sbu / Decimal('12'))
+
+            decimo_tercero_pagado = base_decimo_tercero if empleado.preferencia_decimo_tercero == 'mensual' else Decimal('0.00')
+            decimo_tercero_acumulado = Decimal('0.00') if empleado.preferencia_decimo_tercero == 'mensual' else base_decimo_tercero
+
+            decimo_cuarto_pagado = base_decimo_cuarto if empleado.preferencia_decimo_cuarto == 'mensual' else Decimal('0.00')
+            decimo_cuarto_acumulado = Decimal('0.00') if empleado.preferencia_decimo_cuarto == 'mensual' else base_decimo_cuarto
+
+            meses_antiguedad = ((periodo.year - empleado.fecha_ingreso.year) * 12) + (periodo.month - empleado.fecha_ingreso.month)
+            fondos_reserva = _money(ingresos_gravables * Decimal('0.0833')) if meses_antiguedad > 12 else Decimal('0.00')
+
+            total_ingresos = _money(
+                empleado.sueldo + valor_hs + valor_he + bonos + decimo_tercero_pagado + decimo_cuarto_pagado + fondos_reserva
+            )
+            total_egresos = _money(aporte_iess + descuentos)
+            liquido_pagar = _money(total_ingresos - total_egresos)
+
+            nomina, _ = NominaMensual.objects.update_or_create(
+                empleado=empleado,
+                periodo=periodo,
+                defaults={
+                    'horas_suplementarias': hs,
+                    'horas_extraordinarias': he,
+                    'bonificaciones_comisiones': bonos,
+                    'descuentos': descuentos,
+                    'sbu': sbu,
+                    'valor_horas_suplementarias': valor_hs,
+                    'valor_horas_extraordinarias': valor_he,
+                    'ingresos_gravables': ingresos_gravables,
+                    'aporte_iess_personal': aporte_iess,
+                    'decimo_tercero_pagado': decimo_tercero_pagado,
+                    'decimo_tercero_acumulado': decimo_tercero_acumulado,
+                    'decimo_cuarto_pagado': decimo_cuarto_pagado,
+                    'decimo_cuarto_acumulado': decimo_cuarto_acumulado,
+                    'fondos_reserva': fondos_reserva,
+                    'total_ingresos': total_ingresos,
+                    'total_egresos': total_egresos,
+                    'liquido_pagar': liquido_pagar,
+                }
+            )
+            registros_nomina.append(nomina)
+
+        if registros_nomina:
+            primero = registros_nomina[0]
+            comprobante = primero
+            ejemplo = {
+                'empleado': {
+                    'id': primero.empleado.id,
+                    'apellidos_nombres': primero.empleado.apellidos_nombres,
+                    'cedula_pasaporte': primero.empleado.cedula_pasaporte,
+                    'cargo': primero.empleado.cargo,
+                },
+                'periodo': primero.periodo.strftime('%Y-%m'),
+                'entradas': {
+                    'horas_suplementarias_50': float(primero.horas_suplementarias),
+                    'horas_extraordinarias_100': float(primero.horas_extraordinarias),
+                    'bonificaciones_comisiones': float(primero.bonificaciones_comisiones),
+                    'descuentos': float(primero.descuentos),
+                    'sbu': float(primero.sbu),
+                },
+                'calculos': {
+                    'ingresos_gravables': float(primero.ingresos_gravables),
+                    'aporte_iess_personal_9_45': float(primero.aporte_iess_personal),
+                    'decimo_tercero_pagado': float(primero.decimo_tercero_pagado),
+                    'decimo_tercero_acumulado': float(primero.decimo_tercero_acumulado),
+                    'decimo_cuarto_pagado': float(primero.decimo_cuarto_pagado),
+                    'decimo_cuarto_acumulado': float(primero.decimo_cuarto_acumulado),
+                    'fondos_reserva': float(primero.fondos_reserva),
+                    'total_ingresos': float(primero.total_ingresos),
+                    'total_egresos': float(primero.total_egresos),
+                    'liquido_pagar': float(primero.liquido_pagar),
+                }
+            }
+            ejemplo_json = json.dumps(ejemplo, indent=2, ensure_ascii=False)
+
+        messages.success(request, 'Nómina procesada y guardada correctamente.')
+
+    return render(request, 'modulo_rol_pagos.html', {
+        'empleados': empleados,
+        'meses': range(1, 13),
+        'periodo_mes': periodo_mes,
+        'periodo_anio': periodo_anio,
+        'sbu': sbu,
+        'registros_nomina': registros_nomina,
+        'comprobante': comprobante,
+        'ejemplo_json': ejemplo_json,
+    })
 
 
 # =========================
