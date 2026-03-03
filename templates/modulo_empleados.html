@@ -149,6 +149,12 @@
                 <label>Sueldo</label>
                 {{ form.sueldo }}
 
+                <label>Pago décimo tercero</label>
+                {{ form.preferencia_decimo_tercero }}
+
+                <label>Pago décimo cuarto</label>
+                {{ form.preferencia_decimo_cuarto }}
+
                 <div class="btns">
                     <button class="btn" type="submit">{% if empleado_edicion %}Actualizar{% else %}Guardar{% endif %}</button>
                     {% if empleado_edicion %}
@@ -170,6 +176,8 @@
                         <th>CARGOS</th>
                         <th>FECHA DE INGRESO</th>
                         <th>SUELDO</th>
+                        <th>13RO</th>
+                        <th>14TO</th>
                         <th>ACCIONES</th>
                     </tr>
                 </thead>
@@ -182,6 +190,8 @@
                             <td>{{ empleado.cargo }}</td>
                             <td>{{ empleado.fecha_ingreso|date:'j/n/Y' }}</td>
                             <td>$ {{ empleado.sueldo|floatformat:2 }}</td>
+                            <td>{{ empleado.get_preferencia_decimo_tercero_display }}</td>
+                            <td>{{ empleado.get_preferencia_decimo_cuarto_display }}</td>
                             <td>
                                 <div class="acciones">
                                     <a class="btn" href="{% url 'modulo_empleados' %}?editar={{ empleado.id }}">Editar</a>
@@ -196,7 +206,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7">No hay empleados registrados todavía.</td>
+                            <td colspan="9">No hay empleados registrados todavía.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
